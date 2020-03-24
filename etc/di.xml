@@ -24,4 +24,10 @@
             </argument>
         </arguments>
     </type>
+    <type name="Amazon\Core\Block\Adminhtml\System\Config\Form\DeveloperLogs">
+        <plugin name="amazon_alexa_developer_logs" type="Amazon\Alexa\Plugin\DeveloperLogs" sortOrder="100" disabled="false"/>
+    </type>
+    <type name="Amazon\PayV2\Block\Adminhtml\System\Config\Form\DeveloperLogs">
+        <plugin name="amazon_alexa_developer_logs" type="Amazon\Alexa\Plugin\DeveloperLogs" sortOrder="100" disabled="false"/>
+    </type>
 </config>

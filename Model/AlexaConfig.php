@@ -23,6 +23,11 @@ use Zend\Crypt\PublicKey\RsaOptions;
 class AlexaConfig
 {
     /**
+     * @var \Amazon\Alexa\Logger\AlexaLogger
+     */
+    private $alexaLogger;
+
+    /**
      * @var \Magento\Framework\App\Config\ConfigResource\ConfigInterface
      */
     private $config;
@@ -43,22 +48,94 @@ class AlexaConfig
     private $cacheManager;
 
     /**
+     * @var \Magento\Framework\Module\Manager
+     */
+    private $moduleManager;
+
+    /**
      * AlexaConfig constructor.
+     * @param \Amazon\Alexa\Logger\AlexaLogger $alexaLogger
      * @param \Magento\Framework\App\Config\ConfigResource\ConfigInterface $config
      * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
      * @param \Magento\Framework\App\Cache\Manager $cacheManager
+     * @param \Magento\Framework\Module\Manager $moduleManager
      * @param \Magento\Framework\Encryption\EncryptorInterface $encryptor
      */
     public function __construct(
+        \Amazon\Alexa\Logger\AlexaLogger $alexaLogger,
         \Magento\Framework\App\Config\ConfigResource\ConfigInterface $config,
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         \Magento\Framework\App\Cache\Manager $cacheManager,
+        \Magento\Framework\Module\Manager $moduleManager,
         \Magento\Framework\Encryption\EncryptorInterface $encryptor
     ) {
+        $this->alexaLogger  = $alexaLogger;
         $this->config       = $config;
         $this->scopeConfig  = $scopeConfig;
         $this->cacheManager = $cacheManager;
+        $this->moduleManager = $moduleManager;
         $this->encryptor    = $encryptor;
+    }
+
+    /**
+     * @return \Amazon\PayV2\Model\AmazonConfig
+     */
+    protected function getPaymentConfig()
+    {
+        $result = null;
+        if ($this->moduleManager->isEnabled('Amazon_PayV2')) {
+            try {
+                $result = \Magento\Framework\App\ObjectManager::getInstance()->get('Amazon\PayV2\Model\AmazonConfig');
+            } catch (\Exception $e) {
+                $this->alexaLogger->addWarning($e->getMessage());
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * @param string $scope
+     * @param null $scopeCode
+     * @return bool
+     */
+    protected function usePaymentCredentials($scope = ScopeInterface::SCOPE_STORE, $scopeCode = null)
+    {
+        $result = false;
+        $config = $this->getPaymentConfig();
+        if ($config) {
+            $result = $config->isEnabled($scope, $scopeCode);
+        }
+        return $result;
+    }
+
+    /**
+     * @param string $scope
+     * @param null $scopeCode
+     * @return string|null
+     */
+    protected function getPaymentPrivateKey($scope = ScopeInterface::SCOPE_STORE, $scopeCode = null)
+    {
+        $result = null;
+        $config = $this->getPaymentConfig();
+        if ($config) {
+            $result = $config->getPrivateKey($scope, $scopeCode);
+        }
+        return $result;
+    }
+
+    /**
+     * @param string $scope
+     * @param null $scopeCode
+     * @return string|null
+     */
+    protected function getPaymentPublicKeyId($scope = ScopeInterface::SCOPE_STORE, $scopeCode = null)
+    {
+        $result = null;
+        $config = $this->getPaymentConfig();
+        if ($config) {
+            $result = $config->getPublicKeyId($scope, $scopeCode);
+        }
+        return $result;
     }
 
     /**
@@ -90,7 +167,7 @@ class AlexaConfig
      */
     public function getAlexaPrivateKey($scope = ScopeInterface::SCOPE_STORE, $scopeCode = null)
     {
-        return $this->scopeConfig->getValue(
+        return $this->usePaymentCredentials($scope, $scopeCode) ? $this->getPaymentPrivateKey($scope, $scopeCode) : $this->scopeConfig->getValue(
             'payment/amazon_payment/alexa_private_key',
             $scope,
             $scopeCode
@@ -126,7 +203,7 @@ class AlexaConfig
      */
     public function getAlexaPublicKeyId($scope = ScopeInterface::SCOPE_STORE, $scopeCode = null)
     {
-        return $this->scopeConfig->getValue(
+        return $this->usePaymentCredentials($scope, $scopeCode) ? $this->getPaymentPublicKeyId($scope, $scopeCode) : $this->scopeConfig->getValue(
             'payment/amazon_payment/alexa_public_key_id',
             $scope,
             $scopeCode

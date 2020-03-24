@@ -33,11 +33,17 @@
                         <comment model="Amazon\Alexa\Model\Config\Comment\AlexaPrivateKey"/>
                         <frontend_model>Amazon\Alexa\Model\Config\Form\Privatekey</frontend_model>
                         <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
+                        <depends>
+                            <field id="payment/us/amazon_payment/api_version">1</field>
+                        </depends>
                     </field>
                     <field id="public_key_id" translate="label comment" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="0">
                         <label>Public Key ID</label>
                         <config_path>payment/amazon_payment/alexa_public_key_id</config_path>
                         <comment model="Amazon\Alexa\Model\Config\Comment\AlexaPublicKeyId"/>
+                        <depends>
+                            <field id="payment/us/amazon_payment/api_version">1</field>
+                        </depends>
                     </field>
                 </group>
             </group>
